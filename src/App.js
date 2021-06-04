@@ -2,8 +2,10 @@ import React, { Component } from 'react';
 import './App.css';
 import _ from "lodash";
 import './styles.scss';
-import { Grid, Card,CardContent, Checkbox , FormControlLabel, Chip  } from "@material-ui/core";
+import { Grid, Card, CardHeader, CardActions, CardContent, Checkbox , FormControlLabel, Chip, Button, Select, FormControl, Collapse } from "@material-ui/core";
 import Loader from './components/Loader';
+import SearchIcon from '@material-ui/icons/Search';
+import LocalOfferRoundedIcon from '@material-ui/icons/LocalOfferRounded';
 
 const load = (callback) => {
   window.gapi.client.load("sheets", "v4", () => {
@@ -81,9 +83,7 @@ export default class App extends Component {
       selected: "",
       selectedTags: [],
       loading: true,
-      loadingLocations: true,
-      loadingRestaurants: true,
-      loadingTags: true,
+      expanded: false
     }
   }
 
@@ -128,6 +128,7 @@ export default class App extends Component {
     const result = _.get(items,`[${random}]`,null);
     this.setState(prevState=>({
       ...prevState,
+      expanded: false,
       result:result
     }))
   }
@@ -151,7 +152,7 @@ export default class App extends Component {
 
   render() {
     const randomResult = this.state.result;
-    const { loading } = this.state;
+    const { loading, expanded } = this.state;
     return (
       <div className="App">
         <Grid
@@ -162,63 +163,81 @@ export default class App extends Component {
         >
           <Grid item md={8} xs={12}>
             <Card>
-              <CardContent>
+              <CardHeader 
+                title="搵食地區 (Location):"
+              />
+              <CardActions disableSpacing>
                 <Grid
                   container
                   direction="row"
                   justify="center"
                   alignItems="center"
+                  spacing={2}
                 >
-                  <Grid item md={6} xs={12}>
-                    <Grid
-                      container
-                      direction="row"
-                    >
-                      <Grid item xs={12}>搵食地區 (Location):</Grid>
-                      <Grid item xs={12}>
-                        <select onChange={(e)=>{
+                  <Grid item sm={8} xs={12}>
+                    <FormControl style={{width: "100%"}}>
+                      <Select 
+                        native
+                        onChange={(e)=>{
                           this.setState(prevState=>({
                             ...prevState,
                             selected: e.target.value
                           }))
-                          
-                        }}>
-                          <option>-- Please Select --</option>
-                          { (this.state.locations != null) && this.state.locations.map((v)=> { return(<option value={v}>{v}</option>); }) }
-                        </select>
-                      </Grid>
-                      <Grid item container xs={12}>
-                        {
-                          this.state.tags.map((tag)=>{
-                            return(<Grid item xs={4} key={`cb_${tag}`}>
-                              <FormControlLabel
-                                control={
-                                  <Checkbox
-                                    onChange={this.handleChange}
-                                    name="tags"
-                                    value={tag}
-                                  />
-                                }
-                                label={tag}
-                              />
-                            </Grid>)
-                          })
-                        }
-                      </Grid>
-                      <Grid item xs={12}>
-                        <button onClick={(e)=>{this.onRandom()}}>Random</button>
-                      </Grid>
-                    </Grid>
+                        }}
+                      >
+                        <option>請選擇地區</option>
+                        { (this.state.locations != null) && this.state.locations.map((v)=> { return(<option value={v}>{v}</option>); }) }
+                      </Select>
+                    </FormControl>
                   </Grid>
-                  <Grid item md={6} xs={12}>
-                    <Restaurant
-                        name={`${_.get(randomResult,"name","無紀錄")}`}
-                        address={`${_.get(randomResult,"address","無紀錄")}`}
-                        price_range={`${_.get(randomResult,"price_range","無紀錄")}`}
-                        tags={_.get(randomResult,"tags",[])}
-                    />
+                  <Grid item sm={2} xs={6} style={{textAlign: "center"}}> 
+                    <Button onClick={(e)=>{this.onRandom()}} variant="contained" color="primary">
+                      <SearchIcon />
+                    </Button >
+                  </Grid>
+                  <Grid item sm={2} xs={6} style={{textAlign: "center"}}>
+                    <Button onClick={(e)=>{this.setState(prevState=>({
+                      expanded: !expanded
+                    }))}} variant="contained" color="primary">
+                      <LocalOfferRoundedIcon />
+                    </Button >
                   </Grid>
                 </Grid>
+              </CardActions>
+              <Collapse in={expanded}>
+                <CardContent>
+                  <Grid
+                    container
+                    direction="row"
+                  >
+                    <Grid item container xs={12}>
+                      {
+                        this.state.tags.map((tag)=>{
+                          return(<Grid item xs={4} key={`cb_${tag}`}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  onChange={this.handleChange}
+                                  name="tags"
+                                  value={tag}
+                                />
+                              }
+                              label={tag}
+                            />
+                          </Grid>)
+                        })
+                      }
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Collapse>
+              <CardContent>
+                <Restaurant
+                    name={`${_.get(randomResult,"name","無紀錄")}`}
+                    address={`${_.get(randomResult,"address","無紀錄")}`}
+                    price_range={`${_.get(randomResult,"price_range","無紀錄")}`}
+                    tags={_.get(randomResult,"tags",[])}
+                />
               </CardContent>
             </Card>
           </Grid>

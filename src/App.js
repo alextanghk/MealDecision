@@ -4,49 +4,37 @@ import _ from "lodash";
 import './styles.scss';
 import { Grid, Card,CardContent, Checkbox , FormControlLabel, Chip  } from "@material-ui/core";
 import Loader from './components/Loader';
-const loadRestaurants = (callback) => {
+
+const load = (callback) => {
   window.gapi.client.load("sheets", "v4", () => {
     window.gapi.client.sheets.spreadsheets.values
-      .get({
+      .batchGet({
         spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
-        range: `${process.env.REACT_APP_SHEET_ID}!A2:E`
+        ranges: [
+            `${process.env.REACT_APP_SHEET_ID}!A2:E`,
+            `${process.env.REACT_APP_SHEET_LOC}!A2:B`,
+            `${process.env.REACT_APP_SHEET_TAGS}!A2:B`]
       })
       .then(
         response => {
-          const data = response.result.values;
-          const items = data.map(item => ({
+          const data = response.result.valueRanges;
+          const items = data[0].values.map(item => ({
             name: item[0],
             location: item[1],
             address: item[2],
             price_range: item[3],
-            type: item[4],
             tags: _.get(item,"[4]","").split(";"),
           })) || [];
-          callback({
-            items
-          });
-        },
-        response => {
-          callback(false, response.result.error);
-        }
-      );
-  });
-}
-const loadLocations = (callback) => {
-  window.gapi.client.load("sheets", "v4", () => {
-    window.gapi.client.sheets.spreadsheets.values
-      .get({
-        spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
-        range: `${process.env.REACT_APP_SHEET_LOC}!A2:B`
-      })
-      .then(
-        response => {
-          const data = response.result.values;
-          const items = data.map(item => ({
+          const locations = data[1].values.map(item => ({
+            zh_name: item[0]
+          })) || [];
+          const tags = data[2].values.map(item => ({
             zh_name: item[0]
           })) || [];
           callback({
-            items
+            items: items,
+            locations: locations,
+            tags: tags
           });
         },
         response => {
@@ -55,29 +43,7 @@ const loadLocations = (callback) => {
       );
   });
 }
-const loadTags = (callback) => {
-  window.gapi.client.load("sheets", "v4", () => {
-    window.gapi.client.sheets.spreadsheets.values
-      .get({
-        spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
-        range: `${process.env.REACT_APP_SHEET_TAGS}!A2:B`
-      })
-      .then(
-        response => {
-          const data = response.result.values;
-          const items = data.map(item => ({
-            zh_name: item[0]
-          })) || [];
-          callback({
-            items
-          });
-        },
-        response => {
-          callback(false, response.result.error);
-        }
-      );
-  });
-}
+
 export default class App extends Component {
   constructor(props) {
     super(props);
@@ -88,6 +54,7 @@ export default class App extends Component {
       result: null,
       selected: "",
       selectedTags: [],
+      loading: true,
       loadingLocations: true,
       loadingRestaurants: true,
       loadingTags: true,
@@ -101,52 +68,27 @@ export default class App extends Component {
   componentDidMount() {
     window.gapi.load("client", this.initClient);
   }
+
   initClient = () => {
     window.gapi.client.init({
       apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
       discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
     }).then(()=>{
-      loadRestaurants(this.onLoadRestaurants);
-      loadLocations(this.onLoadLocation);
-      loadTags(this.onLoadTag);
+      load(this.onLoad);
     })
   }
 
-  onLoadRestaurants = (data,error) => {
+  onLoad = (data,error) => {
     if (data) {
       this.setState(prevState => ({
+        tags: data.tags,
+        locations: data.locations,
         items: data.items,
-        loadingRestaurants:false
+        loading:false
       }))
     } else {
       this.setState(prevState => ({
-        loadingRestaurants:false
-      }))
-    }
-  }
-
-  onLoadLocation = (data,error) => {
-    if (data) {
-      this.setState(prevState => ({
-        locations: data.items,
-        loadingLocations:false
-      }))
-    } else {
-      this.setState(prevState => ({
-        loadingLocations:false
-      }))
-    }
-  }
-
-  onLoadTag = (data,error) => {
-    if (data) {
-      this.setState(prevState => ({
-        tags: data.items,
-        loadingTags:false
-      }))
-    } else {
-      this.setState(prevState => ({
-        loadingTags:false
+        loading:false
       }))
     }
   }
@@ -155,10 +97,7 @@ export default class App extends Component {
     const location = this.state.selected;
     const tags = this.state.selectedTags;
     const filterByLocation = (location !== "" && location !== undefined) ? _.filter(this.state.items, {location: location}) : this.state.items;
-    console.log(tags);
-    console.log(filterByLocation);
     const items = tags.length > 0 ? _.filter(filterByLocation,(o)=>{ return _.intersection(o.tags,tags).length > 0 }) : filterByLocation;
-    console.log(items);
     const random = Math.floor(Math.random()*items.length);
     const result = _.get(items,`[${random}]`,null);
     this.setState(prevState=>({
@@ -186,7 +125,7 @@ export default class App extends Component {
 
   render() {
     const randomResult = this.state.result;
-    const { loadingTags, loadingRestaurants, loadingLocations } = this.state;
+    const { loading } = this.state;
     return (
       <div className="App">
         <Grid
@@ -269,7 +208,7 @@ export default class App extends Component {
             </Card>
           </Grid>
         </Grid>
-        { (loadingLocations || loadingRestaurants || loadingTags) && <Loader />}
+        { (loading) && <Loader />}
       </div>
     ); 
   }

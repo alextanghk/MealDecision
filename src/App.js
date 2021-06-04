@@ -161,7 +161,7 @@ export default class App extends Component {
           justify="center"
           alignItems="center"
         >
-          <Grid item md={8} xs={12}>
+          <Grid item md={6} sm={12} xs={12}>
             <Card>
               <CardHeader 
                 title="搵食地區 (Location):"

@@ -189,7 +189,7 @@ export default class App extends Component {
                       direction="row"
                     >
                       <Grid item xs={4}>餐廳 (Restaurant):</Grid><Grid item xs={8}>{`${_.get(randomResult,"name","無紀錄")}`}</Grid>
-                      <Grid item xs={4}>地址 (Address):</Grid><Grid item xs={8}>{`${_.get(randomResult,"address","無紀錄")}`}</Grid>
+                      <Grid item xs={4}>地址 (Address):</Grid><Grid item xs={8} style={{ whiteSpace: 'pre-wrap' }}>{`${_.get(randomResult,"address","無紀錄")}`}</Grid>
                       <Grid item xs={4}>種類 (Type):</Grid><Grid item xs={8}>{`${_.get(randomResult,"type","無紀錄")}`}</Grid>
                       <Grid item xs={4}>價格範圍 / 每人 (Price Range / Per Person):</Grid><Grid item xs={8}>{`${_.get(randomResult,"price_range","無紀錄")}`}</Grid>
                     </Grid>

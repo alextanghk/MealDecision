@@ -3,7 +3,7 @@ import './App.css';
 import _ from "lodash";
 import './styles.scss';
 import { Grid, Card,CardContent } from "@material-ui/core";
-
+import Loader from './components/Loader';
 
 const load = (callback) => {
   window.gapi.client.load("sheets", "v4", () => {
@@ -97,7 +97,12 @@ export default class App extends Component {
   onLoadLocation = (data,error) => {
     if (data) {
       this.setState(prevState => ({
-        locations: data.items
+        locations: data.items,
+        loading:false
+      }))
+    } else {
+      this.setState(prevState => ({
+        loading:false
       }))
     }
   }
@@ -171,6 +176,7 @@ export default class App extends Component {
             </Card>
           </Grid>
         </Grid>
+        { this.state.loading && <Loader />}
       </div>
     ); 
   }

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import './App.css';
 import _ from "lodash";
 import './styles.scss';
-import { Grid, Card,CardContent } from "@material-ui/core";
+import { Grid, Card,CardContent, Checkbox , FormControlLabel } from "@material-ui/core";
 import Loader from './components/Loader';
 
 const loadRestaurants = (callback) => {
@@ -21,6 +21,7 @@ const loadRestaurants = (callback) => {
             address: item[2],
             price_range: item[3],
             type: item[4],
+            tags: _.get(item,"[4]","").split(";"),
           })) || [];
           callback({
             items
@@ -55,17 +56,42 @@ const loadLocations = (callback) => {
       );
   });
 }
-
+const loadTags = (callback) => {
+  window.gapi.client.load("sheets", "v4", () => {
+    window.gapi.client.sheets.spreadsheets.values
+      .get({
+        spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
+        range: `${process.env.REACT_APP_SHEET_TAGS}!A2:B`
+      })
+      .then(
+        response => {
+          const data = response.result.values;
+          const items = data.map(item => ({
+            zh_name: item[0]
+          })) || [];
+          callback({
+            items
+          });
+        },
+        response => {
+          callback(false, response.result.error);
+        }
+      );
+  });
+}
 export default class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
       items: [],
       locations:[],
+      tags:[],
       result: null,
       selected: "",
+      selectedTags: [],
       loadingLocations: true,
       loadingRestaurants: true,
+      loadingTags: true,
     }
   }
 
@@ -83,15 +109,7 @@ export default class App extends Component {
     }).then(()=>{
       loadRestaurants(this.onLoadRestaurants);
       loadLocations(this.onLoadLocation);
-    })
-  }
-
-  initClientRestaurants = () => {
-    window.gapi.client.init({
-      apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
-      discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
-    }).then(()=>{
-      loadRestaurants(this.onLoadRestaurants);
+      loadTags(this.onLoadTag);
     })
   }
 
@@ -108,15 +126,6 @@ export default class App extends Component {
     }
   }
 
-  initClientLocations = () => {
-    window.gapi.client.init({
-      apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
-      discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
-    }).then(()=>{
-      loadLocations(this.onLoadLocation);
-    })
-  }
-
   onLoadLocation = (data,error) => {
     if (data) {
       this.setState(prevState => ({
@@ -130,9 +139,27 @@ export default class App extends Component {
     }
   }
 
+  onLoadTag = (data,error) => {
+    if (data) {
+      this.setState(prevState => ({
+        tags: data.items,
+        loadingTags:false
+      }))
+    } else {
+      this.setState(prevState => ({
+        loadingTags:false
+      }))
+    }
+  }
+
   onRandom = () => {
     const location = this.state.selected;
-    const items = (location !== "" && location !== undefined) ? _.filter(this.state.items, {location: location}) : this.state.items;
+    const tags = this.state.selectedTags;
+    const filterByLocation = (location !== "" && location !== undefined) ? _.filter(this.state.items, {location: location}) : this.state.items;
+    console.log(tags);
+    console.log(filterByLocation);
+    const items = tags.length > 0 ? _.filter(filterByLocation,(o)=>{ return _.intersection(o.tags,tags).length > 0 }) : filterByLocation;
+    console.log(items);
     const random = Math.floor(Math.random()*items.length);
     const result = _.get(items,`[${random}]`,null);
     this.setState(prevState=>({
@@ -141,8 +168,26 @@ export default class App extends Component {
     }))
   }
 
+  handleChange = (e) => {
+    const { selectedTags } = this.state;
+    const value = e.target.value;
+    if (!e.target.checked) {
+      this.setState(prevState=>({
+        ...prevState,
+        selectedTags: _.difference(selectedTags,[value])
+      }))
+    } else {
+      
+      this.setState(prevState=>({
+        ...prevState,
+        selectedTags: _.concat(selectedTags,[value])
+      }))
+    }
+  }
+
   render() {
     const randomResult = this.state.result;
+    const { loadingTags, loadingRestaurants, loadingLocations } = this.state;
     return (
       <div className="App">
         <Grid
@@ -151,7 +196,7 @@ export default class App extends Component {
           justify="center"
           alignItems="center"
         >
-          <Grid item md={4} xs={12}>
+          <Grid item md={8} xs={12}>
             <Card>
               <CardContent>
                 <Grid
@@ -160,7 +205,7 @@ export default class App extends Component {
                   justify="center"
                   alignItems="center"
                 >
-                  <Grid item md={4} xs={12}>
+                  <Grid item md={6} xs={12}>
                     <Grid
                       container
                       direction="row"
@@ -178,12 +223,30 @@ export default class App extends Component {
                           { (this.state.locations != null) && this.state.locations.map((v)=> { return(<option value={v.zh_name}>{v.zh_name}</option>); }) }
                         </select>
                       </Grid>
+                      <Grid item container xs={12}>
+                        {
+                          this.state.tags.map((tag)=>{
+                            return(<Grid item xs={4}>
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    onChange={this.handleChange}
+                                    name="tags"
+                                    value={tag.zh_name}
+                                  />
+                                }
+                                label={tag.zh_name}
+                              />
+                            </Grid>)
+                          })
+                        }
+                      </Grid>
                       <Grid item xs={12}>
                         <button onClick={(e)=>{this.onRandom()}}>Random</button>
                       </Grid>
                     </Grid>
                   </Grid>
-                  <Grid item md={8} xs={12}>
+                  <Grid item md={6} xs={12}>
                     <Grid
                       container
                       direction="row"
@@ -199,7 +262,7 @@ export default class App extends Component {
             </Card>
           </Grid>
         </Grid>
-        { (this.state.loadingLocations || this.state.loadingRestaurants) && <Loader />}
+        { (loadingLocations || loadingRestaurants || loadingTags) && <Loader />}
       </div>
     ); 
   }

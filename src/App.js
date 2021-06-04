@@ -73,7 +73,7 @@ export default class App extends Component {
   onRandom = () => {
     const location = this.state.selected;
     console.log(this.state.items);
-    const items = (location != "" && location != undefined) ? _.filter(this.state.items, {location: location}) : this.state.items;
+    const items = (location !== "" && location !== undefined) ? _.filter(this.state.items, {location: location}) : this.state.items;
     console.log(items);
     const random = Math.floor(Math.random()*items.length);
     const result = _.get(items,`[${random}]`,null);

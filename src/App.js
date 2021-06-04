@@ -2,9 +2,8 @@ import React, { Component } from 'react';
 import './App.css';
 import _ from "lodash";
 import './styles.scss';
-import { Grid, Card,CardContent, Checkbox , FormControlLabel } from "@material-ui/core";
+import { Grid, Card,CardContent, Checkbox , FormControlLabel, Chip  } from "@material-ui/core";
 import Loader from './components/Loader';
-
 const loadRestaurants = (callback) => {
   window.gapi.client.load("sheets", "v4", () => {
     window.gapi.client.sheets.spreadsheets.values
@@ -253,7 +252,15 @@ export default class App extends Component {
                     >
                       <Grid item xs={4}>餐廳 (Restaurant):</Grid><Grid item xs={8}>{`${_.get(randomResult,"name","無紀錄")}`}</Grid>
                       <Grid item xs={4}>地址 (Address):</Grid><Grid item xs={8} style={{ whiteSpace: 'pre-wrap' }}>{`${_.get(randomResult,"address","無紀錄")}`}</Grid>
-                      <Grid item xs={4}>種類 (Type):</Grid><Grid item xs={8}>{`${_.get(randomResult,"type","無紀錄")}`}</Grid>
+                      <Grid item xs={4}>標籤 (Tags):</Grid><Grid item xs={8}>
+                        <div className="tags-container">
+                        {
+                          _.get(randomResult,"tags",[]).map((tag)=>{
+                            return(<Chip label={tag} color="primary" />)
+                          })
+                        }
+                        </div>
+                      </Grid>
                       <Grid item xs={4}>價格範圍 / 每人 (Price Range / Per Person):</Grid><Grid item xs={8}>{`${_.get(randomResult,"price_range","無紀錄")}`}</Grid>
                     </Grid>
                   </Grid>

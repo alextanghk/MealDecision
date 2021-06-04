@@ -5,7 +5,7 @@ import './styles.scss';
 import { Grid, Card,CardContent } from "@material-ui/core";
 import Loader from './components/Loader';
 
-const load = (callback) => {
+const loadRestaurants = (callback) => {
   window.gapi.client.load("sheets", "v4", () => {
     window.gapi.client.sheets.spreadsheets.values
       .get({
@@ -64,7 +64,8 @@ export default class App extends Component {
       locations:[],
       result: null,
       selected: "",
-      loading: true
+      loadingLocations: true,
+      loadingRestaurants: true,
     }
   }
 
@@ -75,34 +76,56 @@ export default class App extends Component {
   componentDidMount() {
     window.gapi.load("client", this.initClient);
   }
-
   initClient = () => {
     window.gapi.client.init({
       apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
       discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
     }).then(()=>{
-      load(this.onLoad);
+      loadRestaurants(this.onLoadRestaurants);
       loadLocations(this.onLoadLocation);
     })
   }
 
-  onLoad = (data,error) => {
+  initClientRestaurants = () => {
+    window.gapi.client.init({
+      apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
+      discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
+    }).then(()=>{
+      loadRestaurants(this.onLoadRestaurants);
+    })
+  }
+
+  onLoadRestaurants = (data,error) => {
     if (data) {
       this.setState(prevState => ({
-        items: data.items
+        items: data.items,
+        loadingRestaurants:false
+      }))
+    } else {
+      this.setState(prevState => ({
+        loadingRestaurants:false
       }))
     }
+  }
+
+  initClientLocations = () => {
+    window.gapi.client.init({
+      apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
+      discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
+    }).then(()=>{
+      loadLocations(this.onLoadLocation);
+    })
   }
 
   onLoadLocation = (data,error) => {
     if (data) {
       this.setState(prevState => ({
         locations: data.items,
-        loading:false
+        loadingLocations:false
       }))
     } else {
       this.setState(prevState => ({
-        loading:false
+        loadingLocations:false
       }))
     }
   }
@@ -176,7 +199,7 @@ export default class App extends Component {
             </Card>
           </Grid>
         </Grid>
-        { this.state.loading && <Loader />}
+        { (this.state.loadingLocations || this.state.loadingRestaurants) && <Loader />}
       </div>
     ); 
   }

@@ -123,7 +123,7 @@ export default class App extends Component {
           justify="center"
           alignItems="center"
         >
-          <Grid item md={4} xs={8}>
+          <Grid item md={4} xs={12}>
             <Card>
               <CardContent>
                 <Grid
@@ -132,7 +132,7 @@ export default class App extends Component {
                   justify="center"
                   alignItems="center"
                 >
-                  <Grid item xs={4}>
+                  <Grid item md={4} xs={12}>
                     <Grid
                       container
                       direction="row"
@@ -155,7 +155,7 @@ export default class App extends Component {
                       </Grid>
                     </Grid>
                   </Grid>
-                  <Grid item xs={8}>
+                  <Grid item md={8} xs={12}>
                     <Grid
                       container
                       direction="row"

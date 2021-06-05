@@ -20,19 +20,15 @@ const load = (callback) => {
       .then(
         response => {
           const data = response.result.values;
-          let tags = [];
-          let locations = [];
+         
           const restaurants = data.map(item => {
-            const itemTags = _.get(item,"[4]","").split(";");
-            tags = _.concat(tags,itemTags);
-            locations = _.concat(locations,[item[1]]);
             return {
               name: _.get(item,"[0]",""),
               location: _.get(item,"[1]",""),
               address: _.get(item,"[2]",""),
               price_range: _.get(item,"[3]",""),
               tags: _.get(item,"[4]","").split(";"),
-              visible: _.get(item,"[5]",0),
+              visible: (_.get(item,"[5]","0") === "1"),
               feature: _.get(item,"[6]",""),
               discount: _.get(item,"[7]",""),
               open_rice: _.get(item,"[8]",""),
@@ -41,9 +37,17 @@ const load = (callback) => {
               menu: _.get(item,"[11]",""),
             };
           }) || [];
+          let tags = [];
+          let locations = [];
+          restaurants.forEach((item)=>{
+            if (item.visible) {
+              tags = _.concat(tags,item.tags);
+              locations = _.concat(locations,[item.location]);
+            }
+          });
 
           callback({
-            restaurants: restaurants,
+            restaurants: _.filter(restaurants,{visible:true}),
             locations: _.uniq(locations).sort(),
             tags: _.uniq(tags).sort()
           });

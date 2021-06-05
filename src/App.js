@@ -2,17 +2,20 @@ import React, { Component } from 'react';
 import './App.css';
 import _ from "lodash";
 import './styles.scss';
-import { Grid, Card, CardHeader, CardActions, CardContent, Checkbox , FormControlLabel, Chip, Button, Select, FormControl, Collapse } from "@material-ui/core";
+import { Grid, Card, CardHeader, CardActions, CardContent, Checkbox , FormControlLabel, Chip, Button, Select, FormControl, Collapse, Link } from "@material-ui/core";
 import Loader from './components/Loader';
 import SearchIcon from '@material-ui/icons/Search';
 import LocalOfferRoundedIcon from '@material-ui/icons/LocalOfferRounded';
+import InstagramIcon from '@material-ui/icons/Instagram';
+import FacebookIcon from '@material-ui/icons/Facebook';
+import OpenRiceIcon from './components/OpenRiceIcon';
 
 const load = (callback) => {
   window.gapi.client.load("sheets", "v4", () => {
     window.gapi.client.sheets.spreadsheets.values
       .get({
         spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
-        range: `${process.env.REACT_APP_SHEET_ID}!A2:E`
+        range: `${process.env.REACT_APP_SHEET_ID}!A2:L`
       })
       .then(
         response => {
@@ -24,13 +27,21 @@ const load = (callback) => {
             tags = _.concat(tags,itemTags);
             locations = _.concat(locations,[item[1]]);
             return {
-              name: item[0],
-              location: item[1],
-              address: item[2],
-              price_range: item[3],
+              name: _.get(item,"[0]",""),
+              location: _.get(item,"[1]",""),
+              address: _.get(item,"[2]",""),
+              price_range: _.get(item,"[3]",""),
               tags: _.get(item,"[4]","").split(";"),
+              visible: _.get(item,"[5]",0),
+              feature: _.get(item,"[6]",""),
+              discount: _.get(item,"[7]",""),
+              open_rice: _.get(item,"[8]",""),
+              facebook: _.get(item,"[9]",""),
+              instagram: _.get(item,"[10]",""),
+              menu: _.get(item,"[11]",""),
             };
           }) || [];
+
           callback({
             restaurants: restaurants,
             locations: _.uniq(locations).sort(),
@@ -45,30 +56,40 @@ const load = (callback) => {
 }
 
 const Restaurant = (props) => {
-  const { name,address, tags, price_range  } = props;
+  const { item } = props;
   return(<Grid
     container
     direction="row"
     justify="flex-start"
     alignItems="flex-start"
     alignContent="flex-start"
+    spacing={2}
   >
-    <Grid item xs={4} key="lName">餐廳 (Restaurant):</Grid>
-    <Grid item xs={8} key="rName">{`${name}`}</Grid>
-    <Grid item xs={4} key="lAddress">地址 (Address):</Grid>
-    <Grid item xs={8} style={{ whiteSpace: 'pre-wrap' }} key="rAddress">{`${address}`}</Grid>
-    <Grid item xs={4} key="lTags">標籤 (Tags):</Grid>
-    <Grid item xs={8} key="rTags">
+    <Grid item sm={4} xs={12} key="lName" className="txt-header">餐廳 (Restaurant):</Grid>
+    <Grid item sm={8} xs={12} key="rName">{`${_.get(item,"name","無紀錄")}`}</Grid>
+    <Grid item sm={4} xs={12} key="lLocation" className="txt-header">地區 (Location):</Grid>
+    <Grid item sm={8} xs={12} key="rLocation">{`${_.get(item,"location","無紀錄")}`}</Grid>
+    <Grid item sm={4} xs={12} key="lAddress" className="txt-header">地址 (Address):</Grid>
+    <Grid item sm={8} xs={12} style={{ whiteSpace: 'pre-wrap' }} key="rAddress">{`${_.get(item,"address","無紀錄")}`}</Grid>
+    <Grid item sm={4} xs={12} key="lPrice" className="txt-header">價格範圍 / 每人 (Price Range / Per Person):</Grid>
+    <Grid item sm={8} xs={12} key="rPrice">{`${_.get(item,"price_range","無紀錄")}`}</Grid>
+    { (_.get(item,"discount","") !== "") && <Grid item sm={4} xs={12} key="lDiscount">優惠 (Discount):</Grid> }
+    { (_.get(item,"discount","") !== "") && <Grid item sm={8} xs={12} key="rDiscount">{`${_.get(item,"discount","無紀錄")}`}</Grid> }
+    { (_.get(item,"open_rice","") !== "" || _.get(item,"facebook","") !== "" || _.get(item,"instagram","") !== "") && <Grid item sm={4} xs={12} key="lWebs" className="txt-header">網站 (Web Page):</Grid> } 
+    <Grid item sm={8} xs={12} key="rWebs">
+      { (_.get(item,"open_rice","") !== "") && <Link href={`${_.get(item,"open_rice","")}`} key="lkOpenRice" target="_blank"><OpenRiceIcon fontSize="large" color="primary"/></Link> }
+      { (_.get(item,"facebook","") !== "") && <Link href={`${_.get(item,"facebook","")}`} key="lkFacebook" target="_blank"><FacebookIcon fontSize="large" color="primary"/></Link> }
+      { (_.get(item,"instagram","") !== "") && <Link href={`${_.get(item,"facebook","")}`} key="lbInstagram" target="_blank"><InstagramIcon fontSize="large" color="primary"/></Link> }
+    </Grid>
+    <Grid item sm={12} xs={12} key="rTags">
       <div className="tags-container">
       {
-        tags.map((tag)=>{
-          return(<Chip label={tag} color="primary" />)
+        _.get(item,"tags",[]).map((tag)=>{
+          return(<Chip label={tag} color="primary" key={`rt${tag}`}/>)
         })
       }
       </div>
     </Grid>
-    <Grid item xs={4} key="lPrice">價格範圍 / 每人 (Price Range / Per Person):</Grid>
-    <Grid item xs={8} key="rPrice">{`${price_range}`}</Grid>
   </Grid>)
 }
 
@@ -185,7 +206,7 @@ export default class App extends Component {
                           }))
                         }}
                       >
-                        <option>請選擇地區</option>
+                        <option value="">全地區</option>
                         { (this.state.locations != null) && this.state.locations.map((v)=> { return(<option value={v}>{v}</option>); }) }
                       </Select>
                     </FormControl>
@@ -233,10 +254,7 @@ export default class App extends Component {
               </Collapse>
               <CardContent>
                 <Restaurant
-                    name={`${_.get(randomResult,"name","無紀錄")}`}
-                    address={`${_.get(randomResult,"address","無紀錄")}`}
-                    price_range={`${_.get(randomResult,"price_range","無紀錄")}`}
-                    tags={_.get(randomResult,"tags",[])}
+                  item={randomResult}
                 />
               </CardContent>
             </Card>

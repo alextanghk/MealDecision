@@ -186,7 +186,7 @@ class App extends Component {
   onRandom = () => {
     const location = this.state.selected;
     const tags = this.state.selectedTags;
-    const filterByLocation = (location !== "" && location !== undefined) ? _.filter(this.state.restaurants, (o)=> { return o.location.zh_name = location}) : this.state.restaurants;
+    const filterByLocation = (location !== "" && location !== undefined) ? _.filter(this.state.restaurants, (o)=> { return o.location.zh_name === location}) : this.state.restaurants;
     const items = tags.length > 0 ? _.filter(filterByLocation,(o)=>{ return _.intersection(o.tags,tags).length > 0 }) : filterByLocation;
     const random = Math.floor(Math.random()*items.length);
     const result = _.get(items,`[${random}]`,null);

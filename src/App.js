@@ -31,10 +31,26 @@ const load = (callback) => {
           const dbRestaurants = data[0].values;
           const dbLocations = data[1].values;
 
+          let locations = dbLocations.map(item => {
+            return {
+              zh_name: _.get(item,"[0]",""),
+              en_name: _.get(item,"[1]",""),
+            };
+          }) || [];
+          let locationsWithData = [];
+          let tags = [];
+
           const restaurants = dbRestaurants.map(item => {
+            let loc = _.get(item,"[1]","");
+            let isVisible = (_.get(item,"[5]","0") === "1");
+            let itemTag = _.get(item,"[4]","").split(";");
+            if (isVisible) {
+              locationsWithData = _.concat(locationsWithData,[loc]);
+              tags = _.concat(tags,itemTag);
+            }
             return {
               name: _.get(item,"[0]",""),
-              location: _.get(item,"[1]",""),
+              location: _.find(locations,{zh_name: loc}),
               address: _.get(item,"[2]",""),
               addresses: _.get(item,"[2]","").split(/\r?\n/),
               price_range: _.get(item,"[3]",""),
@@ -48,22 +64,7 @@ const load = (callback) => {
               menu: _.get(item,"[11]",""),
             };
           }) || [];
-          let tags = [];
-          let locationsWithData = [];
-          let locations = dbLocations.map(item => {
-            return {
-              zh_name: _.get(item,"[0]",""),
-              en_name: _.get(item,"[1]",""),
-            };
-          }) || [];
-
-          restaurants.forEach((item)=>{
-            if (item.visible) {
-              tags = _.concat(tags,item.tags);
-              locationsWithData = _.concat(locationsWithData,[item.location]);
-            }
-          });
-
+          
           locations = _.filter(locations, (o)=>{ return (locationsWithData.indexOf(o.zh_name) >= 0); })
 
           callback({
@@ -79,11 +80,22 @@ const load = (callback) => {
   });
 }
 
+const RestaurantWebLinks = (props) => {
+  const { item } = props;
+  const { open_rice, facebook, instagram, name } = (item !== null) ? item : {};
+
+  return(<div>
+    <Link href={(open_rice === "" ? `https://www.openrice.com/zh/hongkong/restaurants?what=${name}` : open_rice)} key="lkOpenRice" target="_blank"><OpenRiceIcon fontSize="large" color="primary"/></Link>
+    { (facebook !== "") && <Link href={`${facebook}`} key="lkFacebook" target="_blank"><FacebookIcon fontSize="large" color="primary"/></Link> }
+    { (instagram !== "") && <Link href={`instagram}`} key="lbInstagram" target="_blank"><InstagramIcon fontSize="large" color="primary"/></Link> }
+  </div>)
+}
+
 const Restaurant = (props) => {
   const { item } = props;
   const addresses = _.get(item,"addresses",[]);
-  const { open_rice } = (item !== null) ? item : {};
-
+  const lang = localStorage.getItem('user-language') || 'zh';
+  console.log(item);
   return(<Grid
     container
     direction="row"
@@ -95,7 +107,7 @@ const Restaurant = (props) => {
     <Grid item sm={4} xs={12} key="lName" className="txt-header">{i18n.t("lb_restaurant")}:</Grid>
     <Grid item sm={8} xs={12} key="rName">{`${_.get(item,"name",i18n.t("lb_no_record"))}`}</Grid>
     <Grid item sm={4} xs={12} key="lLocation" className="txt-header">{i18n.t("lb_location")}:</Grid>
-    <Grid item sm={8} xs={12} key="rLocation">{`${_.get(item,"location",i18n.t("lb_no_record"))}`}</Grid>
+    <Grid item sm={8} xs={12} key="rLocation">{`${_.get(item,`location.${lang}_name`,i18n.t("lb_no_record"))}`}</Grid>
     <Grid item sm={4} xs={12} key="lAddress" className="txt-header">{i18n.t("lb_address")}:</Grid>
     <Grid item sm={8} xs={12} style={{ whiteSpace: 'pre-wrap' }} key="rAddress">
       {
@@ -110,12 +122,7 @@ const Restaurant = (props) => {
     { (_.get(item,"discount","") !== "") && <Grid item sm={8} xs={12} key="rDiscount">{`${_.get(item,"discount",i18n.t("lb_no_record"))}`}</Grid> }
     <Grid item sm={4} xs={12} key="lWebs" className="txt-header">{i18n.t("lb_web_age")}:</Grid>
     <Grid item sm={8} xs={12} key="rWebs">
-      { item === null && i18n.t("lb_no_record") }
-      {
-        (item !== null) && <Link href={(open_rice === "" ? `https://www.openrice.com/zh/hongkong/restaurants?what=${_.get(item,"name",i18n.t("lb_no_record"))}` : open_rice)} key="lkOpenRice" target="_blank"><OpenRiceIcon fontSize="large" color="primary"/></Link>
-      }
-      { (_.get(item,"facebook","") !== "") && <Link href={`${_.get(item,"facebook","")}`} key="lkFacebook" target="_blank"><FacebookIcon fontSize="large" color="primary"/></Link> }
-      { (_.get(item,"instagram","") !== "") && <Link href={`${_.get(item,"facebook","")}`} key="lbInstagram" target="_blank"><InstagramIcon fontSize="large" color="primary"/></Link> }
+      { item === null ? i18n.t("lb_no_record") : <RestaurantWebLinks item={item}/> }
     </Grid>
     <Grid item sm={12} xs={12} key="rTags">
       <div className="tags-container">
@@ -179,7 +186,7 @@ class App extends Component {
   onRandom = () => {
     const location = this.state.selected;
     const tags = this.state.selectedTags;
-    const filterByLocation = (location !== "" && location !== undefined) ? _.filter(this.state.restaurants, {location: location}) : this.state.restaurants;
+    const filterByLocation = (location !== "" && location !== undefined) ? _.filter(this.state.restaurants, (o)=> { return o.location.zh_name = location}) : this.state.restaurants;
     const items = tags.length > 0 ? _.filter(filterByLocation,(o)=>{ return _.intersection(o.tags,tags).length > 0 }) : filterByLocation;
     const random = Math.floor(Math.random()*items.length);
     const result = _.get(items,`[${random}]`,null);
@@ -259,7 +266,7 @@ class App extends Component {
                         <option value="">{i18n.t("lb_all_location")}</option>
                         { 
                           (this.state.locations != null) && this.state.locations.map((v)=> { 
-                            return(<option value={v.zh_name} key={`op_${v.en_name.replace(" ","_")}`}>{currentLanguage === "zh" ? v.zh_name: v.en_name}</option>); 
+                            return(<option value={v.zh_name} key={`op_${v.en_name.replace(" ","_")}`}>{_.get(v,`${currentLanguage}_name`,"")}</option>); 
                           }) 
                         }
                       </Select>

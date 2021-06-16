@@ -1,14 +1,19 @@
 import React, { Component } from 'react';
 import './App.css';
-import _ from "lodash";
 import './styles.scss';
-import { Grid, Card, CardHeader, CardActions, CardContent, Checkbox , FormControlLabel, Chip, Button, Select, FormControl, Collapse, Link } from "@material-ui/core";
+import i18n from "i18next";
+import { withTranslation } from 'react-i18next';
+import _ from "lodash";
+import { Grid, Card, CardHeader, CardActions, CardContent, Checkbox , FormControlLabel, Chip, Button, Select, FormControl, Collapse, Link, IconButton } from "@material-ui/core";
 import Loader from './components/Loader';
+
 import SearchIcon from '@material-ui/icons/Search';
 import LocalOfferRoundedIcon from '@material-ui/icons/LocalOfferRounded';
+import GTranslateIcon from '@material-ui/icons/GTranslate';
 import InstagramIcon from '@material-ui/icons/Instagram';
 import FacebookIcon from '@material-ui/icons/Facebook';
 import OpenRiceIcon from './components/OpenRiceIcon';
+
 
 const load = (callback) => {
   window.gapi.client.load("sheets", "v4", () => {
@@ -69,17 +74,17 @@ const Restaurant = (props) => {
     alignContent="flex-start"
     spacing={2}
   >
-    <Grid item sm={4} xs={12} key="lName" className="txt-header">餐廳 (Restaurant):</Grid>
-    <Grid item sm={8} xs={12} key="rName">{`${_.get(item,"name","無紀錄")}`}</Grid>
-    <Grid item sm={4} xs={12} key="lLocation" className="txt-header">地區 (Location):</Grid>
-    <Grid item sm={8} xs={12} key="rLocation">{`${_.get(item,"location","無紀錄")}`}</Grid>
-    <Grid item sm={4} xs={12} key="lAddress" className="txt-header">地址 (Address):</Grid>
-    <Grid item sm={8} xs={12} style={{ whiteSpace: 'pre-wrap' }} key="rAddress">{`${_.get(item,"address","無紀錄")}`}</Grid>
-    <Grid item sm={4} xs={12} key="lPrice" className="txt-header">價格範圍 / 每人 (Price Range / Per Person):</Grid>
-    <Grid item sm={8} xs={12} key="rPrice">{`${_.get(item,"price_range","無紀錄")}`}</Grid>
-    { (_.get(item,"discount","") !== "") && <Grid item sm={4} xs={12} key="lDiscount">優惠 (Discount):</Grid> }
-    { (_.get(item,"discount","") !== "") && <Grid item sm={8} xs={12} key="rDiscount">{`${_.get(item,"discount","無紀錄")}`}</Grid> }
-    { (_.get(item,"open_rice","") !== "" || _.get(item,"facebook","") !== "" || _.get(item,"instagram","") !== "") && <Grid item sm={4} xs={12} key="lWebs" className="txt-header">網站 (Web Page):</Grid> } 
+    <Grid item sm={4} xs={12} key="lName" className="txt-header">{i18n.t("lb_restaurant")}:</Grid>
+    <Grid item sm={8} xs={12} key="rName">{`${_.get(item,"name",i18n.t("lb_no_record"))}`}</Grid>
+    <Grid item sm={4} xs={12} key="lLocation" className="txt-header">{i18n.t("lb_location")}:</Grid>
+    <Grid item sm={8} xs={12} key="rLocation">{`${_.get(item,"location",i18n.t("lb_no_record"))}`}</Grid>
+    <Grid item sm={4} xs={12} key="lAddress" className="txt-header">{i18n.t("lb_address")}:</Grid>
+    <Grid item sm={8} xs={12} style={{ whiteSpace: 'pre-wrap' }} key="rAddress">{`${_.get(item,"address",i18n.t("lb_no_record"))}`}</Grid>
+    <Grid item sm={4} xs={12} key="lPrice" className="txt-header">{i18n.t("lb_price_range")} / {i18n.t("lb_per_person")}:</Grid>
+    <Grid item sm={8} xs={12} key="rPrice">{`${_.get(item,"price_range",i18n.t("lb_no_record"))}`}</Grid>
+    { (_.get(item,"discount","") !== "") && <Grid item sm={4} xs={12} key="lDiscount">{i18n.t("lb_discount")}:</Grid> }
+    { (_.get(item,"discount","") !== "") && <Grid item sm={8} xs={12} key="rDiscount">{`${_.get(item,"discount",i18n.t("lb_no_record"))}`}</Grid> }
+    { (_.get(item,"open_rice","") !== "" || _.get(item,"facebook","") !== "" || _.get(item,"instagram","") !== "") && <Grid item sm={4} xs={12} key="lWebs" className="txt-header">{i18n.t("lb_web_age")}:</Grid> } 
     <Grid item sm={8} xs={12} key="rWebs">
       { (_.get(item,"open_rice","") !== "") && <Link href={`${_.get(item,"open_rice","")}`} key="lkOpenRice" target="_blank"><OpenRiceIcon fontSize="large" color="primary"/></Link> }
       { (_.get(item,"facebook","") !== "") && <Link href={`${_.get(item,"facebook","")}`} key="lkFacebook" target="_blank"><FacebookIcon fontSize="large" color="primary"/></Link> }
@@ -97,7 +102,7 @@ const Restaurant = (props) => {
   </Grid>)
 }
 
-export default class App extends Component {
+class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -189,7 +194,21 @@ export default class App extends Component {
           <Grid item md={6} sm={12} xs={12}>
             <Card>
               <CardHeader 
-                title="搵食地區 (Location):"
+                title={i18n.t("lb_header")}
+                action={
+                  <IconButton aria-label="translate" onClick={(e)=>{
+                    const lang = localStorage.getItem('user-language') || 'zh';
+                    if (lang === 'zh') {
+                      localStorage.setItem('user-language','en');
+                      i18n.changeLanguage("en");
+                    } else {
+                      localStorage.setItem('user-language','zh');
+                      i18n.changeLanguage("zh");
+                    }
+                  }}>
+                    <GTranslateIcon color="primary"/>
+                  </IconButton>
+                }
               />
               <CardActions disableSpacing>
                 <Grid
@@ -210,7 +229,7 @@ export default class App extends Component {
                           }))
                         }}
                       >
-                        <option value="">全地區</option>
+                        <option value="">{i18n.t("lb_all_location")}</option>
                         { (this.state.locations != null) && this.state.locations.map((v)=> { return(<option value={v}>{v}</option>); }) }
                       </Select>
                     </FormControl>
@@ -269,3 +288,5 @@ export default class App extends Component {
     ); 
   }
 }
+
+export default withTranslation()(App);

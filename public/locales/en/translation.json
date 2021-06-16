@@ -1,0 +1,12 @@
+{
+    "lb_header":"Location",
+    "lb_restaurant":"Restaurant",
+    "lb_location":"Location",
+    "lb_address":"Address",
+    "lb_price_range":"Price Range",
+    "lb_per_person":"Per Person",
+    "lb_web_age":"Website",
+    "lb_no_record":"No Record",
+    "lb_discount":"Discount",
+    "lb_all_location":"All Locations"
+}

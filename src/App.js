@@ -95,7 +95,6 @@ const Restaurant = (props) => {
   const { item } = props;
   const addresses = _.get(item,"addresses",[]);
   const lang = localStorage.getItem('user-language') || 'zh';
-  console.log(item);
   return(<Grid
     container
     direction="row"

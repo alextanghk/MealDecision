@@ -49,7 +49,10 @@ const load = (callback) => {
               name: _.get(item,"[0]",""),
               location: _.find(locations,{zh_name: _.get(item,"[1]","")}),
               address: _.get(item,"[2]",""),
-              addresses: _.get(item,"[2]","").split(/\r?\n/),
+              addresses: {
+                zh:_.get(item,"[2]","").split(/\r?\n/),
+                en:_.get(item,"[3]","").split(/\r?\n/)
+              },
               price_range: _.get(item,"[4]",""),
               tags: _.get(item,"[5]","").split(";"),
               visible: (_.get(item,"[6]","0") === "1"),
@@ -98,8 +101,8 @@ const RestaurantWebLinks = (props) => {
 
 const Restaurant = (props) => {
   const { item } = props;
-  const addresses = _.get(item,"addresses",[]);
   const lang = localStorage.getItem('user-language') || 'zh';
+  const addresses = _.get(item,`addresses.${lang}`,[]);
   return(<Grid
     container
     direction="row"

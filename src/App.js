@@ -23,7 +23,7 @@ const load = (callback) => {
         spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
         ranges: [
           `${process.env.REACT_APP_SHEET_ID}!A2:L`
-          ,`${process.env.REACT_APP_SHEET_LOC}!A2:B`
+          ,`${process.env.REACT_APP_SHEET_LOC}!A2:C`
         ]
       })
       .then(
@@ -35,6 +35,7 @@ const load = (callback) => {
             return {
               zh_name: _.get(item,"[0]",""),
               en_name: _.get(item,"[1]",""),
+              total: _.get(item,"[2]",""),
             };
           }) || [];
 
@@ -49,15 +50,15 @@ const load = (callback) => {
               location: _.find(locations,{zh_name: _.get(item,"[1]","")}),
               address: _.get(item,"[2]",""),
               addresses: _.get(item,"[2]","").split(/\r?\n/),
-              price_range: _.get(item,"[3]",""),
-              tags: _.get(item,"[4]","").split(";"),
-              visible: (_.get(item,"[5]","0") === "1"),
-              feature: _.get(item,"[6]",""),
-              discount: _.get(item,"[7]",""),
-              open_rice: _.get(item,"[8]",""),
-              facebook: _.get(item,"[9]",""),
-              instagram: _.get(item,"[10]",""),
-              menu: _.get(item,"[11]",""),
+              price_range: _.get(item,"[4]",""),
+              tags: _.get(item,"[5]","").split(";"),
+              visible: (_.get(item,"[6]","0") === "1"),
+              feature: _.get(item,"[7]",""),
+              discount: _.get(item,"[8]",""),
+              open_rice: _.get(item,"[9]",""),
+              facebook: _.get(item,"[10]",""),
+              instagram: _.get(item,"[11]",""),
+              menu: _.get(item,"[12]",""),
             }
 
             if (newItem.visible) {
@@ -287,7 +288,7 @@ class App extends Component {
                         <option value="">{i18n.t("lb_all_location")}</option>
                         { 
                           (this.state.locations != null) && this.state.locations.map((v)=> { 
-                            return(<option value={v.zh_name} key={`op_${v.en_name.replace(" ","_")}`}>{_.get(v,`${currentLanguage}_name`,"")}</option>); 
+                            return(<option value={v.zh_name} key={`op_${v.en_name.replace(" ","_")}`}>{`${_.get(v,`${currentLanguage}_name`,"")} (${_.get(v,"total",0)})`}</option>); 
                           }) 
                         }
                       </Select>

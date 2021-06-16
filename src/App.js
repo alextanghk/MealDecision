@@ -18,15 +18,20 @@ import OpenRiceIcon from './components/OpenRiceIcon';
 const load = (callback) => {
   window.gapi.client.load("sheets", "v4", () => {
     window.gapi.client.sheets.spreadsheets.values
-      .get({
+      .batchGet({
         spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
-        range: `${process.env.REACT_APP_SHEET_ID}!A2:L`
+        ranges: [
+          `${process.env.REACT_APP_SHEET_ID}!A2:L`
+          ,`${process.env.REACT_APP_SHEET_LOC}!A2:B`
+        ]
       })
       .then(
         response => {
-          const data = response.result.values;
-         
-          const restaurants = data.map(item => {
+          const data = response.result.valueRanges;
+          const dbRestaurants = data[0].values;
+          const dbLocations = data[1].values;
+
+          const restaurants = dbRestaurants.map(item => {
             return {
               name: _.get(item,"[0]",""),
               location: _.get(item,"[1]",""),
@@ -43,13 +48,22 @@ const load = (callback) => {
             };
           }) || [];
           let tags = [];
-          let locations = [];
+          let locationsWithData = [];
+          let locations = dbLocations.map(item => {
+            return {
+              zh_name: _.get(item,"[0]",""),
+              en_name: _.get(item,"[1]",""),
+            };
+          }) || [];
+
           restaurants.forEach((item)=>{
             if (item.visible) {
               tags = _.concat(tags,item.tags);
-              locations = _.concat(locations,[item.location]);
+              locationsWithData = _.concat(locationsWithData,[item.location]);
             }
           });
+
+          locations = _.filter(locations, (o)=>{ return (locationsWithData.indexOf(o.zh_name) >= 0); })
 
           callback({
             restaurants: _.filter(restaurants,{visible:true}),
@@ -183,6 +197,7 @@ class App extends Component {
   render() {
     const randomResult = this.state.result;
     const { loading, expanded } = this.state;
+    const currentLanguage = localStorage.getItem('user-language') || 'zh';
     return (
       <div className="App">
         <Grid
@@ -197,8 +212,7 @@ class App extends Component {
                 title={i18n.t("lb_header")}
                 action={
                   <IconButton aria-label="translate" onClick={(e)=>{
-                    const lang = localStorage.getItem('user-language') || 'zh';
-                    if (lang === 'zh') {
+                    if (currentLanguage === 'zh') {
                       localStorage.setItem('user-language','en');
                       i18n.changeLanguage("en");
                     } else {
@@ -230,7 +244,11 @@ class App extends Component {
                         }}
                       >
                         <option value="">{i18n.t("lb_all_location")}</option>
-                        { (this.state.locations != null) && this.state.locations.map((v)=> { return(<option value={v}>{v}</option>); }) }
+                        { 
+                          (this.state.locations != null) && this.state.locations.map((v)=> { 
+                            return(<option value={v.zh_name}>{currentLanguage === "zh" ? v.zh_name: v.en_name}</option>); 
+                          }) 
+                        }
                       </Select>
                     </FormControl>
                   </Grid>

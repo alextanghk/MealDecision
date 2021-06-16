@@ -36,6 +36,7 @@ const load = (callback) => {
               name: _.get(item,"[0]",""),
               location: _.get(item,"[1]",""),
               address: _.get(item,"[2]",""),
+              addresses: _.get(item,"[2]","").split(/\r?\n/),
               price_range: _.get(item,"[3]",""),
               tags: _.get(item,"[4]","").split(";"),
               visible: (_.get(item,"[5]","0") === "1"),
@@ -80,6 +81,9 @@ const load = (callback) => {
 
 const Restaurant = (props) => {
   const { item } = props;
+  const addresses = _.get(item,"addresses",[]);
+  const { open_rice } = (item !== null) ? item : {};
+
   return(<Grid
     container
     direction="row"
@@ -93,14 +97,23 @@ const Restaurant = (props) => {
     <Grid item sm={4} xs={12} key="lLocation" className="txt-header">{i18n.t("lb_location")}:</Grid>
     <Grid item sm={8} xs={12} key="rLocation">{`${_.get(item,"location",i18n.t("lb_no_record"))}`}</Grid>
     <Grid item sm={4} xs={12} key="lAddress" className="txt-header">{i18n.t("lb_address")}:</Grid>
-    <Grid item sm={8} xs={12} style={{ whiteSpace: 'pre-wrap' }} key="rAddress">{`${_.get(item,"address",i18n.t("lb_no_record"))}`}</Grid>
+    <Grid item sm={8} xs={12} style={{ whiteSpace: 'pre-wrap' }} key="rAddress">
+      {
+        addresses.length > 0 ? addresses.map((address,i)=>{
+          return <Link key={`address_${i}`} href={`https://www.google.com/maps/search/${`${address}`}`} target="_blank" style={{display: "block"}}>{address}</Link>
+        }) : i18n.t("lb_no_record")
+      }
+    </Grid>
     <Grid item sm={4} xs={12} key="lPrice" className="txt-header">{i18n.t("lb_price_range")} / {i18n.t("lb_per_person")}:</Grid>
     <Grid item sm={8} xs={12} key="rPrice">{`${_.get(item,"price_range",i18n.t("lb_no_record"))}`}</Grid>
     { (_.get(item,"discount","") !== "") && <Grid item sm={4} xs={12} key="lDiscount">{i18n.t("lb_discount")}:</Grid> }
     { (_.get(item,"discount","") !== "") && <Grid item sm={8} xs={12} key="rDiscount">{`${_.get(item,"discount",i18n.t("lb_no_record"))}`}</Grid> }
-    { (_.get(item,"open_rice","") !== "" || _.get(item,"facebook","") !== "" || _.get(item,"instagram","") !== "") && <Grid item sm={4} xs={12} key="lWebs" className="txt-header">{i18n.t("lb_web_age")}:</Grid> } 
+    <Grid item sm={4} xs={12} key="lWebs" className="txt-header">{i18n.t("lb_web_age")}:</Grid>
     <Grid item sm={8} xs={12} key="rWebs">
-      { (_.get(item,"open_rice","") !== "") && <Link href={`${_.get(item,"open_rice","")}`} key="lkOpenRice" target="_blank"><OpenRiceIcon fontSize="large" color="primary"/></Link> }
+      { item === null && i18n.t("lb_no_record") }
+      {
+        (item !== null) && <Link href={(open_rice === "" ? `https://www.openrice.com/zh/hongkong/restaurants?what=${_.get(item,"name",i18n.t("lb_no_record"))}` : open_rice)} key="lkOpenRice" target="_blank"><OpenRiceIcon fontSize="large" color="primary"/></Link>
+      }
       { (_.get(item,"facebook","") !== "") && <Link href={`${_.get(item,"facebook","")}`} key="lkFacebook" target="_blank"><FacebookIcon fontSize="large" color="primary"/></Link> }
       { (_.get(item,"instagram","") !== "") && <Link href={`${_.get(item,"facebook","")}`} key="lbInstagram" target="_blank"><InstagramIcon fontSize="large" color="primary"/></Link> }
     </Grid>
@@ -246,7 +259,7 @@ class App extends Component {
                         <option value="">{i18n.t("lb_all_location")}</option>
                         { 
                           (this.state.locations != null) && this.state.locations.map((v)=> { 
-                            return(<option value={v.zh_name}>{currentLanguage === "zh" ? v.zh_name: v.en_name}</option>); 
+                            return(<option value={v.zh_name} key={`op_${v.en_name.replace(" ","_")}`}>{currentLanguage === "zh" ? v.zh_name: v.en_name}</option>); 
                           }) 
                         }
                       </Select>

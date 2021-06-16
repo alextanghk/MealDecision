@@ -13,6 +13,7 @@ import GTranslateIcon from '@material-ui/icons/GTranslate';
 import InstagramIcon from '@material-ui/icons/Instagram';
 import FacebookIcon from '@material-ui/icons/Facebook';
 import OpenRiceIcon from './components/OpenRiceIcon';
+import RoomIcon from '@material-ui/icons/Room';
 
 
 const load = (callback) => {
@@ -30,27 +31,22 @@ const load = (callback) => {
           const data = response.result.valueRanges;
           const dbRestaurants = data[0].values;
           const dbLocations = data[1].values;
-
           let locations = dbLocations.map(item => {
             return {
               zh_name: _.get(item,"[0]",""),
               en_name: _.get(item,"[1]",""),
             };
           }) || [];
+
+          let budgets = [];
           let locationsWithData = [];
           let tags = [];
 
           const restaurants = dbRestaurants.map(item => {
-            let loc = _.get(item,"[1]","");
-            let isVisible = (_.get(item,"[5]","0") === "1");
-            let itemTag = _.get(item,"[4]","").split(";");
-            if (isVisible) {
-              locationsWithData = _.concat(locationsWithData,[loc]);
-              tags = _.concat(tags,itemTag);
-            }
-            return {
+
+            let newItem = {
               name: _.get(item,"[0]",""),
-              location: _.find(locations,{zh_name: loc}),
+              location: _.find(locations,{zh_name: _.get(item,"[1]","")}),
               address: _.get(item,"[2]",""),
               addresses: _.get(item,"[2]","").split(/\r?\n/),
               price_range: _.get(item,"[3]",""),
@@ -62,13 +58,21 @@ const load = (callback) => {
               facebook: _.get(item,"[9]",""),
               instagram: _.get(item,"[10]",""),
               menu: _.get(item,"[11]",""),
-            };
+            }
+
+            if (newItem.visible) {
+              locationsWithData = _.concat(locationsWithData,[newItem.location.zh_name]);
+              budgets =  _.concat(budgets,[newItem.price_range]);
+              tags = _.concat(tags,newItem.tags);
+            }
+            return newItem;
           }) || [];
           
           locations = _.filter(locations, (o)=>{ return (locationsWithData.indexOf(o.zh_name) >= 0); })
 
           callback({
             restaurants: _.filter(restaurants,{visible:true}),
+            budgets: _.uniq(budgets).sort(),
             locations: _.uniq(locations).sort(),
             tags: _.uniq(tags).sort()
           });
@@ -111,7 +115,7 @@ const Restaurant = (props) => {
     <Grid item sm={8} xs={12} style={{ whiteSpace: 'pre-wrap' }} key="rAddress">
       {
         addresses.length > 0 ? addresses.map((address,i)=>{
-          return <Link key={`address_${i}`} href={`https://www.google.com/maps/search/${`${address}`}`} target="_blank" style={{display: "block"}}>{address}</Link>
+          return <Link key={`address_${i}`} href={`https://www.google.com/maps/search/${`${address}`}`} target="_blank" style={{display: "block"}}><RoomIcon fontSize="small" color="primary"/>{address}</Link>
         }) : i18n.t("lb_no_record")
       }
     </Grid>
@@ -142,9 +146,13 @@ class App extends Component {
       restaurants: [],
       locations:[],
       tags:[],
+      budgets:[],
       result: null,
-      selected: "",
-      selectedTags: [],
+      selected: {
+        location:"",
+        budget:"",
+        tags:[]
+      },
       loading: true,
       expanded: false
     }
@@ -171,6 +179,7 @@ class App extends Component {
     if (data) {
       this.setState(prevState => ({
         tags: data.tags,
+        budgets: data.budgets,
         locations: data.locations,
         restaurants: data.restaurants,
         loading:false
@@ -183,10 +192,14 @@ class App extends Component {
   }
 
   onRandom = () => {
-    const location = this.state.selected;
-    const tags = this.state.selectedTags;
-    const filterByLocation = (location !== "" && location !== undefined) ? _.filter(this.state.restaurants, (o)=> { return o.location.zh_name === location}) : this.state.restaurants;
-    const items = tags.length > 0 ? _.filter(filterByLocation,(o)=>{ return _.intersection(o.tags,tags).length > 0 }) : filterByLocation;
+    const { location, budget, tags } = this.state.selected;
+
+    let filtered = (location !== "" && location !== undefined) ? _.filter(this.state.restaurants, (o)=> { return o.location.zh_name === location}) : this.state.restaurants;
+    filtered = (budget !== "" && budget !== undefined) ? _.filter(filtered,{price_range: budget}) : filtered;
+
+    const items = tags.length > 0 ? _.filter(filtered,(o)=>{ return _.intersection(o.tags,tags).length > 0 }) : filtered;
+
+
     const random = Math.floor(Math.random()*items.length);
     const result = _.get(items,`[${random}]`,null);
     this.setState(prevState=>({
@@ -197,18 +210,24 @@ class App extends Component {
   }
 
   handleChange = (e) => {
-    const { selectedTags } = this.state;
+    const { tags } = this.state.selected;
     const value = e.target.value;
     if (!e.target.checked) {
       this.setState(prevState=>({
         ...prevState,
-        selectedTags: _.difference(selectedTags,[value])
+        selected: {
+          ...prevState.selected,
+          tags: _.difference(tags,[value])
+        }
       }))
     } else {
       
       this.setState(prevState=>({
         ...prevState,
-        selectedTags: _.concat(selectedTags,[value])
+        selected: {
+          ...prevState.selected,
+          tags: _.concat(tags,[value])
+        }
       }))
     }
   }
@@ -251,14 +270,17 @@ class App extends Component {
                   alignItems="center"
                   spacing={2}
                 >
-                  <Grid item sm={8} xs={12}>
+                  <Grid item sm={4} xs={12}>
                     <FormControl style={{width: "100%"}}>
                       <Select 
                         native
                         onChange={(e)=>{
                           this.setState(prevState=>({
                             ...prevState,
-                            selected: e.target.value
+                            selected: {
+                              ...prevState.selected,
+                              location: e.target.value
+                            }
                           }))
                         }}
                       >
@@ -266,6 +288,29 @@ class App extends Component {
                         { 
                           (this.state.locations != null) && this.state.locations.map((v)=> { 
                             return(<option value={v.zh_name} key={`op_${v.en_name.replace(" ","_")}`}>{_.get(v,`${currentLanguage}_name`,"")}</option>); 
+                          }) 
+                        }
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item sm={4} xs={12}>
+                    <FormControl style={{width: "100%"}}>
+                      <Select 
+                        native
+                        onChange={(e)=>{
+                          this.setState(prevState=>({
+                            ...prevState,
+                            selected: {
+                              ...prevState.selected,
+                              budget: e.target.value
+                            }
+                          }))
+                        }}
+                      >
+                        <option value="">{i18n.t("lb_budget")}</option>
+                        { 
+                          (this.state.budgets != null) && this.state.budgets.map((v,i)=> { 
+                            return(<option value={v} key={`op_budget_${i}`}>{v}</option>); 
                           }) 
                         }
                       </Select>

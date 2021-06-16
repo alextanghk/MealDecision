@@ -10,7 +10,7 @@ i18n
   .init({
     lng: localStorage.getItem('user-language') || 'zh',
     fallbackLng: 'zh',
-    debug: true,
+    debug: process.env.NODE_ENV === "development",
     react: {
       useSuspense: false
     },

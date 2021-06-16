@@ -8,5 +8,6 @@
     "lb_web_age":"Website",
     "lb_no_record":"No Record",
     "lb_discount":"Discount",
-    "lb_all_location":"All Locations"
+    "lb_all_location":"All Locations",
+    "lb_budget":"Budget"
 }
